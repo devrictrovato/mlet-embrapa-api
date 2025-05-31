@@ -1,34 +1,67 @@
-from flask import Blueprint, request, jsonify
 import pandas as pd
 import datetime
 
-from scrapping import get_data
+from flask import Blueprint, request, jsonify
+from flasgger import swag_from
+
+from web.scrapping import get_data
 
 importation_routes = Blueprint('importation', __name__)
 
 @importation_routes.route('/importation')
+@swag_from({
+    'tags': ['Importação'],
+    'summary': 'Retorna dados de importação de produtos vitivinícolas por ano e subcategoria.',
+    'description': 'Consulta os dados de importação conforme os parâmetros informados. '
+                   'Se nenhum parâmetro for fornecido ou ocorrer erro, são utilizados arquivos CSV públicos da Embrapa como fallback.',
+    'parameters': [
+        {
+            'name': 'year',
+            'in': 'query',
+            'type': 'integer',
+            'required': False,
+            'description': 'Ano da importação. Se não for informado, o ano atual será utilizado'
+        },
+        {
+            'name': 'sub',
+            'in': 'query',
+            'type': 'integer',
+            'required': False,
+            'description': 'Subcategoria da importação. Padrão é 0 se não fornecido'
+        }
+    ],
+    'responses': {
+        200: {
+            'description': 'Lista de dados de importação no formato JSON',
+            'examples': {
+                'application/json': [
+                    {
+                        "Países": "Africa do Sul",
+                        "Quantidade (Kg)": "522.733",
+                        "Valor (US$)": "1.732.850"
+                    }
+                ]
+            }
+        }
+    }
+})
 def importation():
     df = pd.DataFrame()  # Fallback inicial: DataFrame vazio
 
     try:
-        # Verifica se há parâmetros fornecidos na requisição (?year=2023&sub=1)
         if any(request.args):
             year_param = request.args.get('year')
             sub_param = request.args.get('sub')
 
-            # Converte os parâmetros, com valores padrão se não informados
             year = int(year_param) if year_param else datetime.datetime.today().year
             suboption = int(sub_param) if sub_param else 0
 
-            # Chama a função get_data com opt=1 (importação) e subopção correspondente
             data = get_data(year, opt=5, subopt=suboption)
             df = pd.DataFrame(data)
 
-            # Se nada for retornado, força uso do fallback
             if df.empty:
                 raise ValueError("Nenhum dado retornado pela função get_data")
         else:
-            # Nenhum parâmetro fornecido: faz o fallback com os CSVs públicos da Embrapa
             urls = [
                 ('http://vitibrasil.cnpuv.embrapa.br/download/ImpVinhos.csv', '\t'),
                 ('http://vitibrasil.cnpuv.embrapa.br/download/ImpEspumantes.csv', '\t'),
@@ -55,5 +88,4 @@ def importation():
         print(f"Erro geral: {e}")
         df = pd.DataFrame()  # Fallback final: garante DataFrame vazio
 
-    # Sempre retorna uma resposta JSON válida, mesmo se estiver vazia
     return jsonify(df.to_dict(orient='records'))
