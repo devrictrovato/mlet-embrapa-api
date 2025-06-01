@@ -6,14 +6,24 @@ from flasgger import swag_from
 
 from web.scrapping import get_data
 
+from flask_jwt_extended import verify_jwt_in_request
+
 importation_routes = Blueprint('importation', __name__)
+
+# Exige JWT para todas as rotas do blueprint
+@importation_routes.before_request
+def require_jwt():
+    verify_jwt_in_request()
 
 @importation_routes.route('/importation')
 @swag_from({
-    'tags': ['Importação'],
+    'tags': ['Vitivinicultura'],
     'summary': 'Retorna dados de importação de produtos vitivinícolas por ano e subcategoria.',
-    'description': 'Consulta os dados de importação conforme os parâmetros informados. '
-                   'Se nenhum parâmetro for fornecido ou ocorrer erro, são utilizados arquivos CSV públicos da Embrapa como fallback.',
+    'description': (
+        'Esta rota requer autenticação JWT.\n'
+        'Consulta os dados de importação conforme os parâmetros informados. '
+        'Se nenhum parâmetro for fornecido ou ocorrer erro, são utilizados arquivos CSV públicos da Embrapa como fallback.'
+    ),
     'parameters': [
         {
             'name': 'year',
@@ -30,6 +40,7 @@ importation_routes = Blueprint('importation', __name__)
             'description': 'Subcategoria da importação. Padrão é 0 se não fornecido'
         }
     ],
+    'security': [{'BearerAuth': []}],  # Indica que rota exige JWT
     'responses': {
         200: {
             'description': 'Lista de dados de importação no formato JSON',
@@ -42,6 +53,9 @@ importation_routes = Blueprint('importation', __name__)
                     }
                 ]
             }
+        },
+        401: {
+            'description': 'Token JWT ausente ou inválido'
         }
     }
 })

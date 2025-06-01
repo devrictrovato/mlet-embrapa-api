@@ -6,14 +6,24 @@ from flasgger import swag_from
 
 from web.scrapping import get_data
 
+from flask_jwt_extended import verify_jwt_in_request
+
 exportation_routes = Blueprint('exportation', __name__)
+
+# Aplica verificação JWT a todas as rotas do blueprint
+@exportation_routes.before_request
+def require_jwt():
+    verify_jwt_in_request()
 
 @exportation_routes.route('/exportation')
 @swag_from({
-    'tags': ['Exportação'],
+    'tags': ['Vitivinicultura'],
     'summary': 'Retorna dados de exportação de produtos vitivinícolas por ano e subcategoria.',
-    'description': 'Consulta os dados de exportação com base nos parâmetros fornecidos (ano e subcategoria). '
-                   'Caso os dados da função `get_data` estejam indisponíveis, utiliza arquivos CSV públicos da Embrapa como fallback.',
+    'description': (
+        'Esta rota requer autenticação JWT.\n'
+        'Consulta os dados de exportação com base nos parâmetros fornecidos (ano e subcategoria). '
+        'Caso os dados da função `get_data` estejam indisponíveis, utiliza arquivos CSV públicos da Embrapa como fallback.'
+    ),
     'parameters': [
         {
             'name': 'year',
@@ -30,6 +40,7 @@ exportation_routes = Blueprint('exportation', __name__)
             'description': 'Subcategoria da exportação (ex: vinho, espumante, uva, suco). Padrão: 0.'
         }
     ],
+    'security': [{'BearerAuth': []}],  # Indica que JWT é necessário
     'responses': {
         200: {
             'description': 'Lista de dados de exportação no formato JSON',
@@ -42,6 +53,9 @@ exportation_routes = Blueprint('exportation', __name__)
                     }
                 ]
             }
+        },
+        401: {
+            'description': 'Token JWT ausente ou inválido'
         }
     }
 })

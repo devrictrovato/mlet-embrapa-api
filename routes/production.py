@@ -3,29 +3,39 @@ import datetime
 
 from flask import Blueprint, request, jsonify
 from flasgger import swag_from
+from flask_jwt_extended import verify_jwt_in_request
 
 from web.scrapping import get_data
 
 production_routes = Blueprint('production_routes', __name__)
 
+# 🔐 Protege todas as rotas com JWT
+@production_routes.before_request
+def require_jwt():
+    verify_jwt_in_request()
+
 @production_routes.route('/production')
 @swag_from({
-    'tags': ['Produção'],
+    'tags': ['Vitivinicultura'],
     'summary': 'Retorna dados de produção vitivinícola por ano.',
-    'description': 'Busca dados de produção usando o ano informado como parâmetro. '
-                   'Se não houver dados disponíveis pela função `get_data`, um fallback para um CSV online será utilizado.',
+    'description': (
+        'Esta rota requer autenticação JWT. '
+        'Busca dados de produção vitivinícola com base no ano fornecido como parâmetro. '
+        'Se não houver dados disponíveis pela função `get_data`, é usado um CSV online como fallback.'
+    ),
     'parameters': [
         {
             'name': 'year',
             'in': 'query',
             'type': 'integer',
             'required': False,
-            'description': 'Ano para o qual se deseja obter os dados de produção. Caso não informado, retorna todos os dados, ao falhar retorna nenhuma informação.'
+            'description': 'Ano desejado. Se não informado, tenta o ano atual. Fallback para CSV se falhar.'
         }
     ],
+    'security': [{'BearerAuth': []}],  # 👈 Requer JWT no Swagger
     'responses': {
         200: {
-            'description': 'Lista de dados de produção no formato JSON',
+            'description': 'Dados de produção em formato JSON',
             'examples': {
                 'application/json': [
                     {
@@ -34,11 +44,14 @@ production_routes = Blueprint('production_routes', __name__)
                     }
                 ]
             }
+        },
+        401: {
+            'description': 'Token JWT ausente ou inválido'
         }
     }
 })
 def production():
-    df = pd.DataFrame()  # Garante um DataFrame vazio como fallback inicial
+    df = pd.DataFrame()
 
     try:
         if any(request.args):
@@ -52,7 +65,7 @@ def production():
                 raise ValueError("Nenhum dado retornado pela função get_data")
         else:
             raise ValueError("Parâmetro 'year' ausente")
-    
+
     except (ValueError, TypeError, Exception) as e:
         try:
             df = pd.read_csv('http://vitibrasil.cnpuv.embrapa.br/download/Producao.csv', sep=';')

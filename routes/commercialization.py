@@ -6,14 +6,24 @@ from flasgger import swag_from
 
 from web.scrapping import get_data
 
+from flask_jwt_extended import verify_jwt_in_request
+
 commercialization_routes = Blueprint('commercialization', __name__)
+
+# Aplica verificação JWT a todas as rotas do blueprint
+@commercialization_routes.before_request
+def require_jwt():
+    verify_jwt_in_request()
 
 @commercialization_routes.route('/commercialization')
 @swag_from({
-    'tags': ['Comercialização'],
+    'tags': ['Vitivinicultura'],
     'summary': 'Retorna dados de comercialização de produtos vitivinícolas por ano.',
-    'description': 'Busca dados de comercialização usando o ano informado como parâmetro. '
-                   'Se a função `get_data` não retornar dados ou ocorrer erro, utiliza um CSV público da Embrapa como fallback.',
+    'description': (
+        'Esta rota requer autenticação JWT.\n'
+        'Busca dados de comercialização usando o ano informado como parâmetro. '
+        'Se a função `get_data` não retornar dados ou ocorrer erro, utiliza um CSV público da Embrapa como fallback.'
+    ),
     'parameters': [
         {
             'name': 'year',
@@ -23,6 +33,7 @@ commercialization_routes = Blueprint('commercialization', __name__)
             'description': 'Ano da comercialização desejada. Caso não informado, será retornado todos os anos, ao falhar retorna nenhuma informação.'
         }
     ],
+    'security': [{'BearerAuth': []}],  # Indica que o JWT é necessário
     'responses': {
         200: {
             'description': 'Lista de dados de comercialização no formato JSON',
@@ -34,6 +45,9 @@ commercialization_routes = Blueprint('commercialization', __name__)
                     }
                 ]
             }
+        },
+        401: {
+            'description': 'Token JWT ausente ou inválido'
         }
     }
 })
