@@ -9,16 +9,13 @@ from routes.commercialization import commercialization_routes
 from routes.importation import importation_routes
 from routes.exportation import exportation_routes
 
+from config import Config
+
 from db.database import db
 from auth.authentication import auth_routes
 
 app = Flask(__name__)
-
-# Configurações
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['JWT_SECRET_KEY'] = '6fe4fbe5c833d787fb97c2211cfa6f8eef0437ebf4052c7e9eff6de008205443'
-app.config['CACHE_TYPE'] = 'SimpleCache'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+app.config.from_object(Config)
 
 # Inicializações
 db.init_app(app)

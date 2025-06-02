@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, render_template, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
     create_access_token, jwt_required, get_jwt_identity
@@ -52,7 +52,7 @@ def register():
 
 
 # ---------- LOGIN ----------
-@auth_routes.route('/login', methods=['POST'])
+@auth_routes.route('/login', methods=['GET', 'POST'])
 @swag_from({
     'tags': ['Auth'],
     'summary': 'Login do usuário',
@@ -78,32 +78,21 @@ def register():
     }
 })
 def login():
-    data = request.get_json()
-    user = User.query.filter_by(username=data.get('username')).first()
+    # Se for GET, apenas renderiza a página
+    if request.method == 'GET':
+        return render_template('login.html')
 
+    # POST = tentativa de login (API)
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'message': 'Campos obrigatórios ausentes'}), 400
+
+    user = User.query.filter_by(username=data.get('username')).first()
     if not user or not check_password_hash(user.password, data.get('password')):
-        return jsonify({'msg': 'Credenciais inválidas'}), 401
+        return jsonify({'message': 'Credenciais inválidas'}), 401
 
     token = create_access_token(identity=user.username)
-    return jsonify(access_token=token)
-
-
-# ---------- ROTA PROTEGIDA ----------
-@auth_routes.route('/protected', methods=['GET'])
-@jwt_required()
-@swag_from({
-    'tags': ['Auth'],
-    'summary': 'Rota protegida',
-    'description': 'Requer token JWT para acesso.',
-    'security': [{'BearerAuth': []}],
-    'responses': {
-        200: {'description': 'Acesso concedido com sucesso'},
-        401: {'description': 'Token JWT ausente ou inválido'}
-    }
-})
-def protected():
-    current_user = get_jwt_identity()
-    return jsonify(msg=f'Acesso concedido a {current_user}')
+    return jsonify(access_token=token), 200
 
 
 # ---------- ATUALIZAR SENHA ----------
