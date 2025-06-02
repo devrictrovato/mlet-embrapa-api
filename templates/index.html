@@ -240,6 +240,16 @@
             background: linear-gradient(45deg, #00d2d3, #54a0ff);
         }
 
+        .btn-login {
+            background: linear-gradient(45deg, #2d3436, #636e72);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-login:hover {
+            background: linear-gradient(45deg, #636e72, #74b9ff);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
         .btn::before {
             content: '';
             position: absolute;
@@ -396,8 +406,9 @@
         </main>
 
         <div class="action-buttons">
-            <a href="/apidocs" class="btn btn-primary">📖 Documentação API</a>
+            <a href="/login" class="btn btn-login">🔐 Login</a>
             <a href="/production" class="btn btn-secondary">📈 Ver Dados de Produção</a>
+            <a href="/apidocs" class="btn btn-primary">📖 Documentação API</a>
             <a href="https://github.com/devrictrovato/mlet-embrapa-api" class="btn btn-accent" target="_blank">💻 Repositório no GitHub</a>
         </div>
 
