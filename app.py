@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template
+from flask import Flask, render_template
 from flasgger import Swagger
 from flask_caching import Cache
 from flask_jwt_extended import JWTManager
@@ -47,7 +47,7 @@ def create_tables():
 @app.route('/')
 @cache.cached()
 def home():
-    return redirect("/apidocs")
+    return render_template('index.html')
 
 # Registro das rotas
 app.register_blueprint(auth_routes)
